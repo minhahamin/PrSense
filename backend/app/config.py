@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     llm_fallback_model: str = ""  # 무료 소진 시 유료 폴백 (예: openai/gpt-4o-mini)
     llm_max_tokens: int = 0  # 0 = unset (프로바이더 기본값)
-    llm_timeout: float = 60.0
-    llm_max_retries: int = 2
+    llm_timeout: float = 45.0
+    llm_max_retries: int = 1
     llm_temperature: float = 0.1
     embedding_model: str = "text-embedding-3-small"
 

@@ -97,12 +97,13 @@ export default function PRDetailPage() {
     }
   };
 
+  const running = status === 'running';
   const finished = status === 'done' && detail?.classification;
 
   return (
     <div className="container">
       <StepIndicator step={step} />
-      {status === 'running' && (
+      {running && (
         <div className="card" style={{ marginBottom: 12, color: '#8b949e', fontSize: 13 }}>
           실시간 분석 중{lastDetail ? ` — ${lastDetail}` : '…'}
         </div>
@@ -116,8 +117,8 @@ export default function PRDetailPage() {
           <option value="warning">warning</option>
           <option value="nit">nit</option>
         </select>
-        <button className="btn" onClick={onRerun}>
-          리뷰 다시 실행
+        <button className="btn" onClick={onRerun} disabled={running}>
+          {running ? '실행 중…' : '리뷰 다시 실행'}
         </button>
         <button className="btn primary" onClick={onPublish} disabled={!finished}>
           GitHub에 게시

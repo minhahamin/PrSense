@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, Header, Request
@@ -16,6 +17,17 @@ from app.services.review_service import get_service
 
 router = APIRouter()
 log = structlog.get_logger()
+
+# 같은 PR에 실행 중인 run이 있으면 새로 만들지 않음 (무료 쿼터 stampede 방지)
+RUN_DEDUP_WINDOW_SEC = 1800
+
+
+async def _already_running(repo: str, pr_number: int):
+    rec = await get_service().latest_for_pr(repo, pr_number)
+    if rec is not None and rec.status == "running" \
+            and time.time() - rec.created_at < RUN_DEDUP_WINDOW_SEC:
+        return rec
+    return None
 
 
 @router.post("/github", response_model=WebhookAck)
@@ -59,6 +71,9 @@ async def github_webhook(
         return JSONResponse(status_code=502, content={"detail": f"fetch failed: {e}"})
 
     service = get_service()
+    dup = await _already_running(repo, pr_number)
+    if dup is not None:
+        return WebhookAck(ok=True, run_id=dup.run_id, message="already running")
     rec = service.create_run(pr_ctx)
     # run in background so webhook ACKs fast
     background.add_task(service.run_review_stream, rec, pr_ctx)
@@ -101,6 +116,9 @@ async def trigger_review_manual(repo: str, pr_number: int, background: Backgroun
             pr_ctx = gh.fetch_pr_context(repo, pr_number)
         except Exception as e:  # noqa: BLE001
             return JSONResponse(status_code=502, content={"detail": f"fetch failed: {e}"})
+    dup = await _already_running(repo, pr_number)
+    if dup is not None:
+        return WebhookAck(ok=True, run_id=dup.run_id, message="already running")
     rec = service.create_run(pr_ctx)
     background.add_task(service.run_review_stream, rec, pr_ctx)
     background.add_task(_drain, rec.run_id)

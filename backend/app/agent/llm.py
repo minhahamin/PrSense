@@ -102,7 +102,7 @@ def invoke_structured(schema: type[T], messages: list) -> T:
         @retry(
             retry=retry_if_exception(_is_rate_limit),
             stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=10, min=10, max=60),
+            wait=wait_exponential(multiplier=5, min=5, max=30),
             reraise=True,
         )
         def _call() -> T:
