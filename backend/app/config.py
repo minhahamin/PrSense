@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     mock_llm: bool = False
 
+    # Database — Railway injects DATABASE_URL when Postgres is added.
+    # Empty → SQLite fallback (local dev / tests).
+    database_url: str = ""
+    sqlite_path: str = ""
+
     @property
     def allowed_repo_set(self) -> set[str]:
         if not self.allowed_repos.strip():

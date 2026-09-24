@@ -1,4 +1,16 @@
-const BASE = '';
+// API 베이스 URL 우선순위:
+//  1) window.__BACKEND_URL__ — Railway 등 배포 환경에서 컨테이너 부팅 시 주입 (env.js)
+//  2) VITE_API_URL — 빌드 타임 변수
+//  3) '' — 로컬 dev (vite proxy /prs, /events … 사용)
+declare global {
+  interface Window {
+    __BACKEND_URL__?: string;
+  }
+}
+const BASE =
+  (typeof window !== 'undefined' && window.__BACKEND_URL__) ||
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  '';
 
 export async function fetchPRs() {
   const r = await fetch(`${BASE}/prs/`);

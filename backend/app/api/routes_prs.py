@@ -12,14 +12,14 @@ router = APIRouter()
 
 
 @router.get("/")
-def list_prs():
-    return {"prs": get_service().list_prs()}
+async def list_prs():
+    return {"prs": await get_service().list_prs()}
 
 
 @router.get("/{repo:path}/{pr_number:int}")
-def pr_detail(repo: str, pr_number: int):
+async def pr_detail(repo: str, pr_number: int):
     service = get_service()
-    rec = service.latest_for_pr(repo, pr_number)
+    rec = await service.latest_for_pr(repo, pr_number)
     if rec is None or rec.result is None:
         return JSONResponse(
             status_code=404,
@@ -41,7 +41,7 @@ def pr_detail(repo: str, pr_number: int):
 
 
 @router.get("/{repo:path}/{pr_number:int}/diff")
-def pr_diff(repo: str, pr_number: int):
+async def pr_diff(repo: str, pr_number: int):
     """Return file diffs (patch text) for the diff viewer."""
     try:
         ctx = gh.fetch_pr_context(repo, pr_number)
@@ -51,9 +51,9 @@ def pr_diff(repo: str, pr_number: int):
 
 
 @router.post("/{repo:path}/{pr_number:int}/publish")
-def publish(repo: str, pr_number: int):
+async def publish(repo: str, pr_number: int):
     service = get_service()
-    rec = service.latest_for_pr(repo, pr_number)
+    rec = await service.latest_for_pr(repo, pr_number)
     if rec is None or rec.result is None:
         return JSONResponse(status_code=404, content={"detail": "no review to publish"})
     try:

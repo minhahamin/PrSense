@@ -9,7 +9,7 @@ export default function App() {
       <header className="topbar">
         <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
           <span className="logo">
-            PrSense<span>.</span>
+            prsenseApp<span>.</span>
           </span>
         </Link>
         <span className="sub">PR auto-review agent · LangGraph + RAG</span>

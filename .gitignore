@@ -11,9 +11,10 @@ venv/
 *.pem
 *.key
 
-# Data (Chroma persistent dir, eval outputs)
+# Data (Chroma persistent dir, eval outputs, local DBs)
 data/
 chroma/
+*.db
 eval/last_result.json
 
 # Frontend

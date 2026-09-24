@@ -167,7 +167,38 @@ class ReviewComment(BaseModel):
 
 ## 한계와 다음 단계
 
-- 인메모리 run 저장소 → Redis/Postgres로 교체 필요 (멀티 인스턴스).
 - removed 파일·대용량 diff(>6000자 잘림)는 분석에서 제외/축소됨.
 - AST 청킹은 Python만 정밀, 타 언어는 라인 윈도우.
 - 다음 단계: 리뷰 코멘트에 대한 개발자 반응(👍/👎) 피드백 루프, 점진적 임계값 튜닝.
+
+## Railway 배포 (프로젝트: prsense)
+
+인프라는 코드로 관리된다 (`.railway/railway.ts` — IaC). 구성 요소:
+
+| 서비스 | 소스 | 비고 |
+|---|---|---|
+| `backend` | `backend/` (Dockerfile) | `/health` 헬스체크, `DATABASE_URL`은 Postgres 참조 |
+| `prsenseApp` | `frontend/` (Dockerfile + nginx) | 부팅 시 `BACKEND_URL`을 `env.js`로 주입 (재빌드 불필요) |
+| `Postgres` | 매니지드 Postgres | 리뷰 실행 이력 영속화 (`review_runs` 테이블, 자동 생성) |
+| `chroma-data` | 볼륨 → `/data` | Chroma 임베딩 영속화 (`CHROMA_DIR=/data/chroma`) |
+
+DB 동작: `DATABASE_URL`이 있으면 Postgres(asyncpg), 없으면 SQLite 폴백.
+DB 장애 시에도 리뷰는 메모리 모드로 계속 동작한다 (이력만 유실).
+
+재배포/동기화:
+
+```powershell
+railway config plan    # IaC 변경 미리보기 (안전, 변경 없음)
+railway config apply   # 프로젝트에 반영
+railway domain --service backend      # 백엔드 공개 도메인 발급
+railway domain --service prsenseApp   # 프론트 공개 도메인 발급
+railway variables --service prsenseApp --set BACKEND_URL=https://<backend>.up.railway.app
+railway variables --service backend --set FRONTEND_ORIGIN=https://<prsenseApp>.up.railway.app
+# 시크릿 (대시보드 또는 CLI)
+railway variables --service backend --set OPENAI_API_KEY=sk-...
+railway variables --service backend --set GITHUB_TOKEN=ghp_...
+railway variables --service backend --set GITHUB_WEBHOOK_SECRET=...
+```
+
+배포 후 GitHub 웹훅 URL을 백엔드 공개 주소로 지정:
+`https://<backend>.up.railway.app/webhook/github` (Pull request 이벤트).

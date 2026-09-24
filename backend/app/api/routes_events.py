@@ -20,7 +20,7 @@ router = APIRouter()
 @router.get("/{run_id}")
 async def stream_events(run_id: str):
     service = get_service()
-    rec = service.get(run_id)
+    rec = await service.get_or_load(run_id)
 
     async def generator():
         if rec is None:

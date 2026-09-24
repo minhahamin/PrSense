@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: prsense
+      POSTGRES_PASSWORD: prsense
+      POSTGRES_DB: prsense
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prsense"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     build: ./backend
     ports:
@@ -10,10 +26,17 @@ services:
       - ./backend/app:/app/app  # dev hot-reload mount (remove in prod)
     environment:
       CHROMA_DIR: /data/chroma
+      DATABASE_URL: postgresql://prsense:prsense@postgres:5432/prsense
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""
     ports:
       - "5173:80"
     depends_on:
@@ -21,3 +44,4 @@ services:
 
 volumes:
   chroma-data:
+  pg-data:
