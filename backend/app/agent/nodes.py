@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
+import time
+from contextlib import contextmanager
 
+import structlog
 from pydantic import BaseModel, Field
 
 from app.agent import prompts
@@ -16,6 +19,18 @@ from app.schemas import (
     PRContext,
     ReviewComment,
 )
+
+log = structlog.get_logger()
+
+
+@contextmanager
+def _timed(node: str, detail: str = ""):
+    t0 = time.time()
+    try:
+        yield
+    finally:
+        log.info("node done", node=node, detail=detail,
+                 elapsed_s=round(time.time() - t0, 1))
 
 
 # structured list wrappers (LangChain requires a single BaseModel)
@@ -38,19 +53,20 @@ def classify_node(state: ReviewState) -> dict:
     ) or "(no files)"
     excerpt = "\n".join(f.patch[:800] for f in pr.files[:5])[:4000]
     # invoke_structured: tool calling → JSON 폴백 (무료 모델 대응)
-    out: PRClassification = invoke_structured(
-        PRClassification,
-        [
-            ("system", prompts.CLASSIFY_SYSTEM),
-            (
-                "user",
-                prompts.CLASSIFY_USER.format(
-                    title=pr.title, body=(pr.body or "")[:2000],
-                    file_stats=file_stats, diff_excerpt=excerpt,
+    with _timed("classify", pr.title[:60]):
+        out: PRClassification = invoke_structured(
+            PRClassification,
+            [
+                ("system", prompts.CLASSIFY_SYSTEM),
+                (
+                    "user",
+                    prompts.CLASSIFY_USER.format(
+                        title=pr.title, body=(pr.body or "")[:2000],
+                        file_stats=file_stats, diff_excerpt=excerpt,
+                    ),
                 ),
-            ),
-        ],
-    )
+            ],
+        )
     return {"classification": out, "progress": ["classify:done"]}
 
 
@@ -100,19 +116,20 @@ def analyze_file_node(payload: dict) -> dict:
             "progress": [f"analyze:{filename}:done"],
         }
 
-    llm_out: _FileReviewList = invoke_structured(
-        _FileReviewList,
-        [
-            ("system", prompts.ANALYZE_FILE_SYSTEM),
-            (
-                "user",
-                prompts.ANALYZE_FILE_USER.format(
-                    filename=filename, status=status,
-                    patch=patch, rag_context=rag_context,
+    with _timed("analyze", filename):
+        llm_out: _FileReviewList = invoke_structured(
+            _FileReviewList,
+            [
+                ("system", prompts.ANALYZE_FILE_SYSTEM),
+                (
+                    "user",
+                    prompts.ANALYZE_FILE_USER.format(
+                        filename=filename, status=status,
+                        patch=patch, rag_context=rag_context,
+                    ),
                 ),
-            ),
-        ],
-    )
+            ],
+        )
     out = llm_out
     # harden file field (LLM sometimes drifts)
     for c in out.comments:
@@ -184,16 +201,17 @@ def aggregate_node(state: ReviewState) -> dict:
         f"- {c.file}:{c.line} [{c.severity.value}/{c.category.value} conf={c.confidence:.2f}] {c.comment}"
         for c in comments
     )[:8000]
-    out: AggregatedReview = invoke_structured(
-        AggregatedReview,
-        [
-            ("system", prompts.AGGREGATE_SYSTEM),
-            (
-                "user",
-                f"Classification: {classification.model_dump_json()}\n\nFindings:\n{blob or '(none)'}",
-            ),
-        ],
-    )
+    with _timed("aggregate", f"{len(comments)} findings"):
+        out: AggregatedReview = invoke_structured(
+            AggregatedReview,
+            [
+                ("system", prompts.AGGREGATE_SYSTEM),
+                (
+                    "user",
+                    f"Classification: {classification.model_dump_json()}\n\nFindings:\n{blob or '(none)'}",
+                ),
+            ],
+        )
     return {
         "final_comments": out.comments,
         "recommendation": out.recommendation,
@@ -238,10 +256,11 @@ def rewrite_node(state: ReviewState) -> dict:
         for c in final_comments
     )[:8000]
     try:
-        out: _RewriteList = invoke_structured(
-            _RewriteList,
-            [("system", prompts.REWRITE_SYSTEM), ("user", f"Rewrite these:\n{blob}")],
-        )
+        with _timed("rewrite", f"{len(final_comments)} comments"):
+            out: _RewriteList = invoke_structured(
+                _RewriteList,
+                [("system", prompts.REWRITE_SYSTEM), ("user", f"Rewrite these:\n{blob}")],
+            )
         if len(out.comments) == len(final_comments):
             # preserve structured fields, only swap comment text
             for dst, src in zip(final_comments, out.comments):
