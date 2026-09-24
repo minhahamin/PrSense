@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Env / secrets
+.env
+*.pem
+*.key
+
+# Data (Chroma persistent dir, eval outputs)
+data/
+chroma/
+eval/last_result.json
+
+# Frontend
+node_modules/
+dist/
+*.local
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,64 @@
+"""PR list / detail / publish endpoints (used by the frontend)."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+
+from app import github_client as gh
+from app.services.review_service import get_service
+
+router = APIRouter()
+
+
+@router.get("/")
+def list_prs():
+    return {"prs": get_service().list_prs()}
+
+
+@router.get("/{repo:path}/{pr_number:int}")
+def pr_detail(repo: str, pr_number: int):
+    service = get_service()
+    rec = service.latest_for_pr(repo, pr_number)
+    if rec is None or rec.result is None:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "no review yet", "status": rec.status if rec else "missing"},
+        )
+    res = rec.result
+    files = []  # frontend fetches diffs separately when needed
+    return {
+        "repo": repo,
+        "pr_number": pr_number,
+        "run_id": rec.run_id,
+        "status": rec.status,
+        "classification": res.classification.model_dump(),
+        "comments": [c.model_dump() for c in res.comments],
+        "recommendation": res.recommendation,
+        "low_confidence_count": res.low_confidence_count,
+        "files": files,
+    }
+
+
+@router.get("/{repo:path}/{pr_number:int}/diff")
+def pr_diff(repo: str, pr_number: int):
+    """Return file diffs (patch text) for the diff viewer."""
+    try:
+        ctx = gh.fetch_pr_context(repo, pr_number)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse(status_code=502, content={"detail": f"fetch failed: {e}"})
+    return {"repo": repo, "pr_number": pr_number, "files": [f.model_dump() for f in ctx.files]}
+
+
+@router.post("/{repo:path}/{pr_number:int}/publish")
+def publish(repo: str, pr_number: int):
+    service = get_service()
+    rec = service.latest_for_pr(repo, pr_number)
+    if rec is None or rec.result is None:
+        return JSONResponse(status_code=404, content={"detail": "no review to publish"})
+    try:
+        ctx = gh.fetch_pr_context(repo, pr_number)
+        n = gh.post_inline_comments(repo, pr_number, rec.result.comments, ctx.head_sha)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse(status_code=502, content={"detail": f"publish failed: {e}"})
+    return {"ok": True, "posted": n}

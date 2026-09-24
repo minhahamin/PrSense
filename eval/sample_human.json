@@ -1,0 +1,7 @@
+{
+  "human": [
+    { "file": "app/auth.py", "line": 13, "note": "except: 로 모든 예외를 삼키고 pass — 최소한 로깅 필요" },
+    { "file": "app/auth.py", "line": 12, "note": "하드코딩된 password 문자열이 커밋됨" },
+    { "file": "app/auth.py", "line": 20, "note": "세션 타임아웃이 빠져있음 (실제로는 관련 없음 — recall 테스트용)" }
+  ]
+}
