@@ -36,6 +36,12 @@ export async function publishReview(repo: string, pr: number) {
   return r.json();
 }
 
+export async function triggerReview(repo: string, pr: number): Promise<{ run_id: string }> {
+  const r = await fetch(`${BASE}/webhook/review/${repo}/${pr}`, { method: 'POST' });
+  if (!r.ok) throw new Error(`trigger failed: ${r.status}`);
+  return r.json();
+}
+
 export function subscribeEvents(runId: string, onEvent: (type: string, data: any) => void): EventSource {
   const es = new EventSource(`${BASE}/events/${runId}`);
   const handler = (t: string) => (e: MessageEvent) => {

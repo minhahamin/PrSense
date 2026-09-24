@@ -2,6 +2,7 @@ import type { PRDetail } from '../types';
 
 export default function SummaryCard({ detail }: { detail: PRDetail }) {
   const { classification, comments, recommendation } = detail;
+  if (!classification) return null; // 실행 중에는 렌더하지 않음
   const files = new Set(comments.map((c) => c.file)).size;
   return (
     <div className="card">

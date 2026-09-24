@@ -22,10 +22,10 @@ export interface PRDetail {
   repo: string;
   pr_number: number;
   run_id: string;
-  status: string;
-  classification: Classification;
+  status: string; // running | done | error | missing
+  classification: Classification | null; // null while running
   comments: ReviewComment[];
-  recommendation: string;
+  recommendation: string | null;
   low_confidence_count: number;
 }
 

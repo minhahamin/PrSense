@@ -20,11 +20,12 @@ async def list_prs():
 async def pr_detail(repo: str, pr_number: int):
     service = get_service()
     rec = await service.latest_for_pr(repo, pr_number)
-    if rec is None or rec.result is None:
+    if rec is None:
         return JSONResponse(
             status_code=404,
-            content={"detail": "no review yet", "status": rec.status if rec else "missing"},
+            content={"detail": "no review yet", "status": "missing", "run_id": None},
         )
+    # 실행 중에도 run_id/status는 반환 → 프론트가 새로고침 없이 SSE 구독 가능
     res = rec.result
     files = []  # frontend fetches diffs separately when needed
     return {
@@ -32,10 +33,10 @@ async def pr_detail(repo: str, pr_number: int):
         "pr_number": pr_number,
         "run_id": rec.run_id,
         "status": rec.status,
-        "classification": res.classification.model_dump(),
-        "comments": [c.model_dump() for c in res.comments],
-        "recommendation": res.recommendation,
-        "low_confidence_count": res.low_confidence_count,
+        "classification": res.classification.model_dump() if res else None,
+        "comments": [c.model_dump() for c in res.comments] if res else [],
+        "recommendation": res.recommendation if res else None,
+        "low_confidence_count": res.low_confidence_count if res else 0,
         "files": files,
     }
 
