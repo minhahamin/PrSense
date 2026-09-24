@@ -13,6 +13,9 @@ def get_chat_model(temperature: float | None = None) -> ChatOpenAI:
         "model": s.llm_model,
         "temperature": s.llm_temperature if temperature is None else temperature,
         "api_key": s.openai_api_key,
+        # hang 방지: 무료 티어 429/무응답 시 빠르게 실패하고 재시도
+        "request_timeout": s.llm_timeout,
+        "max_retries": s.llm_max_retries,
     }
     if s.llm_base_url:
         kwargs["base_url"] = s.llm_base_url
