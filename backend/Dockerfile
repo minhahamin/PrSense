@@ -12,7 +12,8 @@ COPY app ./app
 ENV PYTHONUNBUFFERED=1 \
     CHROMA_DIR=/data/chroma
 
-VOLUME ["/data"]
+# NOTE: no VOLUME instruction — Railway rejects it.
+# Persistent /data comes from the "chroma-data" volume in .railway/railway.ts.
 
 EXPOSE 8000
 
