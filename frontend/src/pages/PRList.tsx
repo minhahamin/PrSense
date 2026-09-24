@@ -17,7 +17,7 @@ export default function PRList() {
     <div className="container">
       <div className="toolbar">
         <h2 style={{ margin: 0 }}>Pull Requests</h2>
-        <span style={{ color: '#8b949e' }}>{prs.length}건</span>
+        <span className="dim">{prs.length}건</span>
       </div>
       {err && <div className="card">불러오기 실패: {err}</div>}
       {!err && prs.length === 0 && (
@@ -39,7 +39,7 @@ export default function PRList() {
             <span className="num">#{p.pr_number}</span>
             <div style={{ flex: 1 }}>
               <div className="title">{p.title || `${p.repo} #${p.pr_number}`}</div>
-              <div className="mono" style={{ fontSize: 12, color: '#8b949e' }}>
+              <div className="mono dim" style={{ fontSize: 12 }}>
                 {p.repo} · {p.status} · {p.run_id.slice(-8)}
               </div>
             </div>

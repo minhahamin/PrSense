@@ -104,7 +104,7 @@ export default function PRDetailPage() {
     <div className="container">
       <StepIndicator step={step} />
       {running && (
-        <div className="card" style={{ marginBottom: 12, color: '#8b949e', fontSize: 13 }}>
+        <div className="card dim" style={{ marginBottom: 12, fontSize: 13 }}>
           실시간 분석 중{lastDetail ? ` — ${lastDetail}` : '…'}
         </div>
       )}
@@ -132,7 +132,7 @@ export default function PRDetailPage() {
         </div>
       )}
       {status === 'error' && (
-        <div className="card">리뷰 실행 중 오류가 발생했습니다. 다시 실행해주세요.</div>
+        <div className="card warn">리뷰 실행 중 오류가 발생했습니다. 다시 실행해주세요.</div>
       )}
       {finished && detail && (
         <DiffViewer files={files} comments={detail.comments} severityFilter={filter} />

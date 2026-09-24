@@ -9,7 +9,7 @@ export default function SummaryCard({ detail }: { detail: PRDetail }) {
       <div style={{ fontWeight: 700, marginBottom: 6 }}>
         {detail.repo} #{detail.pr_number}
       </div>
-      <div style={{ color: '#8b949e', fontSize: 13 }}>{classification.summary}</div>
+      <div className="dim" style={{ fontSize: 13 }}>{classification.summary}</div>
       <div className="summary-grid">
         <div className="stat">
           <div className="k">변경 파일 (지적)</div>
@@ -32,7 +32,7 @@ export default function SummaryCard({ detail }: { detail: PRDetail }) {
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: '#8b949e' }}>
+      <div className="dim" style={{ fontSize: 12 }}>
         변경 유형: <span className="mono">{classification.change_type}</span>
         {' · '}신뢰도 낮은 지적: {detail.low_confidence_count}건
         {classification.focus_areas?.length > 0 && (

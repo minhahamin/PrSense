@@ -17,7 +17,7 @@ export function CommentCard({ c }: { c: ReviewComment }) {
       <div>{c.comment}</div>
       {c.suggested_fix && (
         <div className="fix">
-          <div style={{ fontSize: 11, color: '#8b949e', marginBottom: 4 }}>제안 수정</div>
+          <div className="label">제안 수정</div>
           <pre>{c.suggested_fix}</pre>
         </div>
       )}

@@ -50,7 +50,7 @@ function FileDiff({ file, comments }: { file: DiffFile; comments: ReviewComment[
       <div className="file-block">
         <div className="file-head">
           <span>{file.filename}</span>
-          <span style={{ color: '#8b949e' }}>{file.status} · diff 없음</span>
+          <span className="dim">{file.status} · diff 없음</span>
         </div>
       </div>
     );
@@ -60,9 +60,9 @@ function FileDiff({ file, comments }: { file: DiffFile; comments: ReviewComment[
     <div className="file-block">
       <div className="file-head">
         <span>{file.filename}</span>
-        <span style={{ color: '#8b949e' }}>
-          {file.status} · <span style={{ color: '#3fb950' }}>+{file.additions}</span>{' '}
-          <span style={{ color: '#f85149' }}>-{file.deletions}</span>
+        <span className="dim">
+          {file.status} · <span style={{ color: '#2f9e44' }}>+{file.additions}</span>{' '}
+          <span style={{ color: '#d6336c' }}>-{file.deletions}</span>
           {comments.length > 0 && (
             <span className="pill warning" style={{ marginLeft: 8 }}>
               {comments.length}건
