@@ -7,7 +7,7 @@ import re
 from pydantic import BaseModel, Field
 
 from app.agent import prompts
-from app.agent.llm import get_chat_model, is_mock_mode
+from app.agent.llm import invoke_structured, is_mock_mode
 from app.agent.state import ReviewState
 from app.schemas import (
     AggregatedReview,
@@ -33,12 +33,13 @@ def classify_node(state: ReviewState) -> dict:
     if is_mock_mode():
         return {"classification": _mock_classify(pr), "progress": ["classify:done"]}
 
-    llm = get_chat_model().with_structured_output(PRClassification)
     file_stats = "\n".join(
         f"- {f.filename} | {f.status} | +{f.additions} -{f.deletions}" for f in pr.files
     ) or "(no files)"
     excerpt = "\n".join(f.patch[:800] for f in pr.files[:5])[:4000]
-    out: PRClassification = llm.invoke(
+    # invoke_structured: tool calling → JSON 폴백 (무료 모델 대응)
+    out: PRClassification = invoke_structured(
+        PRClassification,
         [
             ("system", prompts.CLASSIFY_SYSTEM),
             (
@@ -48,7 +49,7 @@ def classify_node(state: ReviewState) -> dict:
                     file_stats=file_stats, diff_excerpt=excerpt,
                 ),
             ),
-        ]
+        ],
     )
     return {"classification": out, "progress": ["classify:done"]}
 
@@ -99,8 +100,8 @@ def analyze_file_node(payload: dict) -> dict:
             "progress": [f"analyze:{filename}:done"],
         }
 
-    llm = get_chat_model().with_structured_output(_FileReviewList)
-    out: _FileReviewList = llm.invoke(
+    llm_out: _FileReviewList = invoke_structured(
+        _FileReviewList,
         [
             ("system", prompts.ANALYZE_FILE_SYSTEM),
             (
@@ -110,8 +111,9 @@ def analyze_file_node(payload: dict) -> dict:
                     patch=patch, rag_context=rag_context,
                 ),
             ),
-        ]
+        ],
     )
+    out = llm_out
     # harden file field (LLM sometimes drifts)
     for c in out.comments:
         c.file = filename
@@ -177,20 +179,20 @@ def aggregate_node(state: ReviewState) -> dict:
             "progress": ["aggregate:done"],
         }
 
-    llm = get_chat_model().with_structured_output(AggregatedReview)
     # serialize compactly to save tokens
     blob = "\n".join(
         f"- {c.file}:{c.line} [{c.severity.value}/{c.category.value} conf={c.confidence:.2f}] {c.comment}"
         for c in comments
     )[:8000]
-    out: AggregatedReview = llm.invoke(
+    out: AggregatedReview = invoke_structured(
+        AggregatedReview,
         [
             ("system", prompts.AGGREGATE_SYSTEM),
             (
                 "user",
                 f"Classification: {classification.model_dump_json()}\n\nFindings:\n{blob or '(none)'}",
             ),
-        ]
+        ],
     )
     return {
         "final_comments": out.comments,
@@ -231,14 +233,14 @@ def rewrite_node(state: ReviewState) -> dict:
     if is_mock_mode() or not final_comments:
         return {"final_comments": final_comments, "progress": ["rewrite:done"]}
 
-    llm = get_chat_model().with_structured_output(_RewriteList)
     blob = "\n".join(
         f"- {c.file}:{c.line} [{c.severity.value}] {c.comment} | fix={c.suggested_fix or '-'}"
         for c in final_comments
     )[:8000]
     try:
-        out: _RewriteList = llm.invoke(
-            [("system", prompts.REWRITE_SYSTEM), ("user", f"Rewrite these:\n{blob}")]
+        out: _RewriteList = invoke_structured(
+            _RewriteList,
+            [("system", prompts.REWRITE_SYSTEM), ("user", f"Rewrite these:\n{blob}")],
         )
         if len(out.comments) == len(final_comments):
             # preserve structured fields, only swap comment text
