@@ -43,7 +43,7 @@ export async function triggerReview(repo: string, pr: number): Promise<{ run_id:
 }
 
 export function subscribeEvents(runId: string, onEvent: (type: string, data: any) => void): EventSource {
-  const es = new EventSource(`${BASE}/events/${runId}`);
+  const es = new EventSource(`${BASE}/events/${encodeURIComponent(runId)}`);
   const handler = (t: string) => (e: MessageEvent) => {
     try {
       onEvent(t, JSON.parse(e.data || '{}'));

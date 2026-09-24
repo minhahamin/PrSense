@@ -52,7 +52,8 @@ class ReviewService:
 
     # -- lifecycle -------------------------------------------------- #
     def create_run(self, pr: PRContext) -> RunRecord:
-        run_id = f"{pr.repo.replace('/', '_')}#{pr.pr_number}-{uuid.uuid4().hex[:8]}"
+        # NOTE: '#' 사용 금지 — URL fragment로 잘려 SSE 구독이 깨짐
+        run_id = f"{pr.repo.replace('/', '_')}-{pr.pr_number}-{uuid.uuid4().hex[:8]}"
         rec = RunRecord(run_id=run_id, repo=pr.repo, pr_number=pr.pr_number,
                         title=pr.title or "")
         self.runs[run_id] = rec
