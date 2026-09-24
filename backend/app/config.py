@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     llm_base_url: str = ""
     llm_model: str = "gpt-4o-mini"
+    llm_max_tokens: int = 0  # 0 = unset (프로바이더 기본값)
     llm_temperature: float = 0.1
     embedding_model: str = "text-embedding-3-small"
 

@@ -16,6 +16,9 @@ def get_chat_model(temperature: float | None = None) -> ChatOpenAI:
     }
     if s.llm_base_url:
         kwargs["base_url"] = s.llm_base_url
+    if s.llm_max_tokens > 0:
+        # OpenRouter 무료 크레딧처럼 예산이 빡빡할 때 예약 토큰 상한을 제한
+        kwargs["max_tokens"] = s.llm_max_tokens
     return ChatOpenAI(**kwargs)
 
 
