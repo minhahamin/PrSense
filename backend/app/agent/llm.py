@@ -101,8 +101,8 @@ def invoke_structured(schema: type[T], messages: list) -> T:
     def _attempt(model: str) -> T:
         @retry(
             retry=retry_if_exception(_is_rate_limit),
-            stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=5, min=5, max=30),
+            stop=stop_after_attempt(1),
+            wait=wait_exponential(multiplier=1, min=1, max=5),
             reraise=True,
         )
         def _call() -> T:
